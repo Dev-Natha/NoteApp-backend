@@ -8,18 +8,30 @@ from .models import *
 @api_view(["GET"])
 def getRoutes(request):
     routes = [
-        "GET /api --- coming soon"
+        "GET /note"
+        "GET /note/:id"
     ]
     return Response(routes)
 
-@api_view(["GET"])
+@api_view(["GET", "POST"])
 def getNotes(request):
-    notes = Notes.objects.all()
+    if request.method == "POST":
+        Notes.objects.create(title=request.data['title'], body=request.data['body'])
+    notes = Notes.objects.all().order_by("-updated")
     serializer = NoteSerializer(notes, many=True)
     return Response(serializer.data)
 
-@api_view(["GET"])
-def getNote(request, pk):
+@api_view(["GET", "PUT", "DELETE"])
+def handleNote(request, pk):
     note = Notes.objects.get(id=pk)
-    serializer = NoteSerializer(note, many=False)
+    if request.method == "GET":
+        serializer = NoteSerializer(note, many=False)
+    elif request.method == "PUT":
+        serializer = NoteSerializer(instance=note, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+    elif request.method == "DELETE":
+        note.delete()
+        return Response("Deleted Successfully")
+
     return Response(serializer.data)
