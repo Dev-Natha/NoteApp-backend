@@ -9,3 +9,12 @@ class Notes(models.Model):
 
     def __str__(self):
         return self.title
+    
+class Todos(models.Model):
+    details = models.TextField(max_length=250, blank=True)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+    completed = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.title
