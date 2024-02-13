@@ -2,13 +2,14 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .serializers import *
 from .models import *
-
+import jwt, datetime
+from .utils import *
 # Create your views here.
 
 @api_view(["GET"])
 def getRoutes(request):
     routes = [
-        "GET /note"
+        "GET /note",
         "GET /note/:id"
     ]
     return Response(routes)
@@ -35,3 +36,17 @@ def handleNote(request, pk):
         return Response("Deleted Successfully")
 
     return Response(serializer.data)
+
+@api_view(["POST"])
+def registerUser(request):
+    username = request.data["username"]
+    password1 = request.data["password1"]
+    password2 = request.data["password2"]
+    try:
+        validate_custom_username(username)
+        validate_custom_password(password1)
+        if password1 != password2:
+            raise ValidationError("Password does not match")
+    except ValidationError as e:
+        return Response(e)
+    return Response("go")
