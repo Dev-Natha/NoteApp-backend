@@ -49,4 +49,25 @@ def registerUser(request):
             raise ValidationError("Password does not match")
     except ValidationError as e:
         return Response(e)
-    return Response("go")
+    user = User.objects.create(username=username, password=password1)
+    payload = {
+            'id': user.id,
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=60),
+            'iat': datetime.datetime.utcnow()
+        }
+
+    token = jwt.encode(payload, 'secret', algorithm='HS256')
+
+    response = Response()
+    response.set_cookie(key='jwt', value=token, httponly=True)
+    response.data = {'jwt': token, "py": payload}
+
+    return response
+
+
+
+# {
+# "username": "Gabriel",
+# "password1": "gab123456",
+# "password2": "gab123456"
+# }
