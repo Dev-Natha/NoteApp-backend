@@ -1,5 +1,6 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework.exceptions import AuthenticationFailed
 from .serializers import *
 from .models import *
 import jwt, datetime
@@ -64,7 +65,20 @@ def registerUser(request):
 
     return response
 
+@api_view(["GET"])
+def getUser(request):
+    token = request.COOKIES.get('jwt')
+    print(token)
+    if not token:
+        raise AuthenticationFailed("Unauthenticated")
+    try:
+        payload = jwt.decode(token, 'secret', algorithms=['HS256'])
+    except Exception as e:
+        return Response('Unauthenticated!')
 
+    user = User.objects.filter(id=payload['id']).first()
+    serializer = UserSerializer(user)
+    return Response(serializer.data)
 
 # {
 # "username": "Gabriel",
