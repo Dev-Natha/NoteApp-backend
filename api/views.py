@@ -5,6 +5,8 @@ from .serializers import *
 from .models import *
 import jwt, datetime
 from .utils import *
+from django.contrib.auth import authenticate
+from django.contrib.auth.hashers import make_password
 # Create your views here.
 
 @api_view(["GET"])
@@ -17,9 +19,15 @@ def getRoutes(request):
 
 @api_view(["GET", "POST"])
 def getNotes(request):
+    token = request.COOKIES.get('jwt')
+    payload = jwt.decode(token, 'secret', algorithms=['HS256'])
+    user = User.objects.filter(id=payload['id']).first()
+    print(payload['id'])
+    print(user)
+    print("Hello how ar e")
     if request.method == "POST":
-        Notes.objects.create(title=request.data['title'], body=request.data['body'])
-    notes = Notes.objects.all().order_by("-updated")
+        Notes.objects.create(title=request.data['title'], body=request.data['body'], user=user)
+    notes = Notes.objects.filter(user=user).order_by("-updated")
     serializer = NoteSerializer(notes, many=True)
     return Response(serializer.data)
 
@@ -50,7 +58,8 @@ def registerUser(request):
             raise ValidationError("Password does not match")
     except ValidationError as e:
         return Response(e)
-    user = User.objects.create(username=username, password=password1)
+    hashed_password = make_password(password1)
+    user = User.objects.create(username=username, password=hashed_password)
     payload = {
             'id': user.id,
             'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=60),
@@ -65,12 +74,39 @@ def registerUser(request):
 
     return response
 
+@api_view(["POST"])
+def loginUser(request):
+    username = request.data["username"]
+    password = request.data["password"]
+    print(username)
+    print(password)
+    try:
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            payload = {
+            'id': user.id,
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=60),
+            'iat': datetime.datetime.utcnow()
+            }
+
+            token = jwt.encode(payload, 'secret', algorithm='HS256')
+
+            response = Response()
+            response.set_cookie(key='jwt', value=token, httponly=True)
+            response.data = {'jwt': token, "py": payload}
+
+            return response
+        else:
+            raise ValidationError("Invalid Login Credentials")
+    except ValidationError as e:
+        return Response(e)
+    
 @api_view(["GET"])
 def getUser(request):
     token = request.COOKIES.get('jwt')
     print(token)
     if not token:
-        raise AuthenticationFailed("Unauthenticated")
+        raise AuthenticationFailed("Unauthenticated!")
     try:
         payload = jwt.decode(token, 'secret', algorithms=['HS256'])
     except Exception as e:
