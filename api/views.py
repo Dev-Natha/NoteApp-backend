@@ -116,6 +116,12 @@ def getUser(request):
     serializer = UserSerializer(user)
     return Response(serializer.data)
 
+@api_view(["POST"])
+def logoutUser(request):
+    response = Response()
+    response.delete_cookie('jwt')
+    response.data = {"message": "success"}
+    return response
 # {
 # "username": "Gabriel",
 # "password1": "gab123456",
